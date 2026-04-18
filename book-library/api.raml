@@ -1,0 +1,130 @@
+#%RAML 1.0
+title: Book Library API
+version: v1
+baseUri: http://localhost:3000/api
+protocols: [ HTTP ]
+mediaType: application/json
+
+types:
+  Book:
+    type: object
+    properties:
+      id: integer
+      title: string
+      author: string
+      publishedYear: integer
+      genre: string
+
+  NewBook:
+    type: object
+    properties:
+      title: string
+      author: string
+      publishedYear: integer
+      genre: string
+
+/books:
+  get:
+    description: Get all books
+    responses:
+      200:
+        body:
+          application/json:
+            example:
+              [
+                {
+                  "id": 1,
+                  "title": "The Alchemist",
+                  "author": "Paulo Coelho",
+                  "publishedYear": 1988,
+                  "genre": "Fiction"
+                }
+              ]
+
+  post:
+    description: Add a new book
+    body:
+      application/json:
+        type: NewBook
+        example:
+          {
+            "title": "Atomic Habits",
+            "author": "James Clear",
+            "publishedYear": 2018,
+            "genre": "Self-help"
+          }
+    responses:
+      201:
+        body:
+          application/json:
+            example:
+              {
+                "message": "Book added successfully"
+              }
+
+/books/{id}:
+  uriParameters:
+    id:
+      type: integer
+      description: Book ID
+
+  get:
+    description: Get a book by ID
+    responses:
+      200:
+        body:
+          application/json:
+            example:
+              {
+                "id": 1,
+                "title": "The Alchemist",
+                "author": "Paulo Coelho",
+                "publishedYear": 1988,
+                "genre": "Fiction"
+              }
+      404:
+        body:
+          application/json:
+            example:
+              {
+                "message": "Book not found"
+              }
+
+  put:
+    description: Update a book by ID
+    body:
+      application/json:
+        type: NewBook
+        example:
+          {
+            "title": "Updated Title",
+            "author": "Updated Author",
+            "publishedYear": 2020,
+            "genre": "Drama"
+          }
+    responses:
+      200:
+        body:
+          application/json:
+            example:
+              {
+                "message": "Book updated successfully"
+              }
+
+  delete:
+    description: Delete a book by ID
+    responses:
+      200:
+        body:
+          application/json:
+            example:
+              {
+                "message": "Book deleted successfully"
+              }
+      404:
+        body:
+          application/json:
+            example:
+              {
+                "message": "Book not found"
+              }

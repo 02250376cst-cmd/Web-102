@@ -1,0 +1,76 @@
+# TikTok REST API (Express.js)
+
+A simple REST API built with **Express.js** to simulate TikTok backend features.  
+It supports CRUD operations for **Users**, **Videos**, and **Comments**, using an in‑memory data store.
+
+---
+
+##  Setup
+
+Install dependencies:
+
+   npm install
+
+# Run the server:
+npm run dev
+Server runs at: http://localhost:3000
+
+# Endpoints
+# Users
+GET /api/users → List all users
+
+POST /api/users → Create a new user
+
+GET /api/users/:id → Get user by ID
+
+PUT /api/users/:id → Update user
+
+DELETE /api/users/:id → Delete user
+
+# Videos
+GET /api/videos → List all videos
+
+POST /api/videos → Create a new video
+
+GET /api/videos/:id → Get video by ID
+
+PUT /api/videos/:id → Update video
+
+DELETE /api/videos/:id → Delete video
+
+# Comments
+GET /api/comments → List all comments
+
+POST /api/comments → Create a new comment
+
+GET /api/comments/:id → Get comment by ID
+
+PUT /api/comments/:id → Update comment
+
+DELETE /api/comments/:id → Delete comment
+
+# Testing
+Use curl in VS Code terminal:
+
+curl -X GET http://localhost:3000/api/users
+curl -X POST http://localhost:3000/api/users -H "Content-Type: application/json" -d '{"username":"john","email":"john@example.com"}'
+Or test with Postman by sending requests to http://localhost:3000.
+
+# Dependencies
+express
+
+cors
+
+morgan
+
+body-parser
+
+dotenv
+
+nodemon
+
+# Notes
+Data is stored in memory (no database).
+
+Responses are JSON.
+Includes basic error handling (400, 404, 409).

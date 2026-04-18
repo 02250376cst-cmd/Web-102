@@ -1,6 +1,0 @@
-{ "scripts": {
-  "start": "node scr/index.js",
-  "dev": "nodemon scr/index.js",
-  "test": "echo \"Error: no test specified\" && exit 1"
-}
-}

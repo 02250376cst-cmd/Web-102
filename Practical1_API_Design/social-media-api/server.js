@@ -4,6 +4,7 @@ const morgan = require('morgan');
 const cors = require('cors');
 const helmet = require('helmet');
 const path = require('path');
+require('dotenv').config();
 
 // Load env vars
 dotenv.config();
@@ -20,7 +21,7 @@ app.use(cors());
 app.use(require('./middleware/formatResponse'));
 
 // Serve static files
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, 'public')));
 
 // API Docs Route
 app.get('/api-docs', (req, res) => {
