@@ -81,7 +81,7 @@ export default function Home() {
     }
   };
 
-  // Format timestamp for display
+  // Format timestamp for Display
   const formatTime = (timestamp) => {
     if (!timestamp) return '';
     const date = new Date(timestamp);
