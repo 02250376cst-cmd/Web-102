@@ -1,0 +1,133 @@
+/* Basic styling for the chat app */
+.chat-container {
+  max-width: 800px;
+  margin: 20px auto;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  overflow: hidden;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.chat-header {
+  background: #4267B2;
+  color: white;
+  padding: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.status-indicator {
+  padding: 5px 10px;
+  border-radius: 15px;
+  font-size: 14px;
+  background-color: #dc3545;
+}
+
+.status-indicator.connected {
+  background-color: #28a745;
+}
+
+.chat-body {
+  display: flex;
+  height: 500px;
+}
+
+.users-panel {
+  width: 200px;
+  background: #f5f5f5;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+  overflow-y: auto;
+}
+
+.users-panel h3 {
+  margin-top: 0;
+  color: #4267B2;
+}
+
+.users-list {
+  list-style: none;
+  padding: 0;
+}
+
+.users-list li {
+  padding: 5px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.messages-panel {
+  flex: 1;
+  padding: 10px;
+  overflow-y: auto;
+}
+
+.message {
+  margin-bottom: 10px;
+  padding: 8px;
+  border-radius: 5px;
+}
+
+.message .author {
+  font-weight: bold;
+  margin-right: 5px;
+}
+
+.message .time {
+  font-size: 12px;
+  color: #777;
+}
+
+.message .content {
+  margin-top: 5px;
+}
+
+.message.system {
+  background-color: #fffde7;
+  text-align: center;
+  font-style: italic;
+}
+
+.message.user {
+  background-color: #e3f2fd;
+  margin-left: 30px;
+}
+
+.message.other {
+  background-color: #f1f1f1;
+  margin-right: 30px;
+}
+
+.chat-input {
+  display: flex;
+  padding: 10px;
+  background-color: #f5f5f5;
+  border-top: 1px solid #ddd;
+}
+
+.chat-input input {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  outline: none;
+}
+
+.chat-input button {
+  margin-left: 10px;
+  padding: 8px 15px;
+  background-color: #4267B2;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.chat-input button:hover {
+  background-color: #365899;
+}
+
+.chat-input button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
