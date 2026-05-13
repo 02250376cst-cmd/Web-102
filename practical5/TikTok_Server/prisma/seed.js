@@ -43,15 +43,15 @@ async function main() {
   console.log('Creating videos...');
   
   const videos = [];
-  for (let userId = 1; userId <= 10; userId++) {
+  for (const user of users) {
     for (let j = 1; j <= 5; j++) {
       const video = await prisma.video.create({
         data: {
-          userId,
-          caption: `Video ${j} from user ${userId}`,
-          videoUrl: `https://example.com/videos/user${userId}_video${j}.mp4`,
-          thumbnailUrl: `https://example.com/thumbnails/user${userId}_video${j}.jpg`,
-          audioName: `Original Sound - User ${userId}`,
+          userId: user.id,
+          caption: `Video ${j} from user ${user.id}`,
+          videoUrl: `https://example.com/videos/user${user.id}_video${j}.mp4`,
+          thumbnailUrl: `https://example.com/thumbnails/user${user.id}_video${j}.jpg`,
+          audioName: `Original Sound - User ${user.id}`,
           views: Math.floor(Math.random() * 10000)
         }
       });

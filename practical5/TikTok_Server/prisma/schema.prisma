@@ -8,19 +8,20 @@ datasource db {
 }
 
 model User {
-  id           Int           @id @default(autoincrement())
-  username     String        @unique
-  email        String        @unique
+  id           Int      @id @default(autoincrement())
+  authId       String?  @unique @db.Uuid @map("auth_id") // Supabase Auth UID
+  username     String   @unique
+  email        String   @unique
   password     String
   name         String?
   bio          String?
   avatar       String?
-  createdAt    DateTime      @default(now()) @map("created_at")
-  updatedAt    DateTime      @default(now()) @updatedAt @map("updated_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at")
   commentLikes CommentLike[]
   comments     Comment[]
-  following    Follow[]      @relation("follower")
-  followedBy   Follow[]      @relation("following")
+  following    Follow[] @relation("follower")
+  followedBy   Follow[] @relation("following")
   videoLikes   VideoLike[]
   videos       Video[]
 
