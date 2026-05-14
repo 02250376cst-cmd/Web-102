@@ -1,0 +1,191 @@
+# Practical 4: Connecting TikTok to PostgreSQL with Prisma ORM
+
+
+## What I Built
+
+For this practical I built the backend server for a TikTok clone application. I set up a REST API using Express.js, connected it to a PostgreSQL database using Prisma ORM, and implemented JWT-based authentication with bcrypt password hashing. The server handles everything — user registration and login, video uploads, likes, comments, and follow relationships — and stores all of it persistently in a real database.
+
+---
+
+## Tech Stack
+
+| Tool | Purpose |
+|---|---|
+| Node.js + Express.js | Web server and REST API |
+| PostgreSQL | Relational database |
+| Prisma ORM v7 | Database schema, migrations, and queries |
+| bcrypt | Password hashing |
+| JSON Web Tokens (JWT) | Authentication tokens |
+| Multer | Handling video and image file uploads |
+| dotenv | Environment variable management |
+| Nodemon | Auto-restart server during development |
+
+---
+
+## Project Structure
+
+```
+server/
+├── prisma/
+│   ├── schema.prisma       # All database models and relationships
+│   ├── prisma.config.ts    # Prisma v7 database connection config
+│   └── seed.js             # Script to populate DB with test data
+├── src/
+│   ├── controllers/
+│   │   ├── userController.js     # Register, login, profile, follow
+│   │   ├── videoController.js    # Upload, feed, like, comments
+│   │   └── commentController.js  # Like and delete comments
+│   ├── middleware/
+│   │   └── auth.js               # JWT verification middleware
+│   ├── routes/
+│   │   ├── userRoutes.js
+│   │   ├── videoRoutes.js
+│   │   └── commentRoutes.js
+│   ├── lib/
+│   │   └── prisma.js             # Shared Prisma client instance
+│   └── index.js                  # Server entry point
+├── uploads/                      # Stored video and thumbnail files
+├── .env
+└── package.json
+```
+
+---
+
+## Database Schema
+
+I designed the database with 6 models in Prisma:
+
+```prisma
+User       — stores account details and hashed passwords
+Video      — stores video metadata and file paths
+Comment    — linked to both a user and a video
+VideoLike  — many-to-many between User and Video
+CommentLike — many-to-many between User and Comment
+Follow     — self-referential many-to-many on User
+```
+
+The `Follow` model was the trickiest to design — it needed two separate relations on the same `User` model, one for `followers` and one for `following`, which required named relation strings in Prisma.
+
+---
+
+## API Endpoints
+
+### Users
+| Method | Endpoint | Protected | Description |
+|---|---|---|---|
+| POST | `/api/users/register` | No | Create new account |
+| POST | `/api/users/login` | No | Login and receive JWT |
+| GET | `/api/users/me` | Yes | Get logged-in user info |
+| GET | `/api/users` | Yes | List all users |
+| GET | `/api/users/:id` | No | Get a user's profile |
+| GET | `/api/users/:id/following` | No | Get who a user follows |
+| POST | `/api/users/:id/follow` | Yes | Follow or unfollow a user |
+
+### Videos
+| Method | Endpoint | Protected | Description |
+|---|---|---|---|
+| GET | `/api/videos` | No | Get all videos (For You feed) |
+| GET | `/api/videos/following` | Yes | Get feed from followed users |
+| POST | `/api/videos` | Yes | Upload a new video |
+| POST | `/api/videos/:id/like` | Yes | Like or unlike a video |
+| GET | `/api/videos/:id/comments` | No | Get comments on a video |
+| POST | `/api/videos/:id/comments` | Yes | Post a comment |
+| DELETE | `/api/videos/:id` | Yes | Delete your own video |
+
+### Comments
+| Method | Endpoint | Protected | Description |
+|---|---|---|---|
+| POST | `/api/comments/:id/like` | Yes | Like or unlike a comment |
+| DELETE | `/api/comments/:id` | Yes | Delete your own comment |
+
+---
+
+## Setup Instructions
+
+### 1. Install dependencies
+
+```bash
+cd server
+npm install
+```
+
+### 2. Set up PostgreSQL
+
+```sql
+CREATE DATABASE tiktok_app_db;
+CREATE USER tiktok_app_user WITH ENCRYPTED PASSWORD 'tiktok123';
+GRANT ALL PRIVILEGES ON DATABASE tiktok_app_db TO tiktok_app_user;
+ALTER USER tiktok_app_user CREATEDB;
+\c tiktok_app_db
+GRANT ALL ON SCHEMA public TO tiktok_app_user;
+```
+
+### 3. Create `.env` file
+
+```env
+PORT=5000
+NODE_ENV=development
+DATABASE_URL="postgresql://tiktok_app_user:tiktok123@localhost:5432/tiktok_app_db?schema=public"
+JWT_SECRET=mysupersecretjwtkey_tiktokapp_2024
+JWT_EXPIRE=30d
+```
+
+### 4. Run migration
+
+```bash
+npx prisma migrate dev --name init
+```
+
+### 5. Seed the database
+
+```bash
+npm run seed
+```
+
+This creates 10 users, 50 videos, 200+ comments, likes, and follow relationships.
+
+### 6. Start the server
+
+```bash
+npm run dev
+```
+
+Server runs at `http://localhost:5000`
+
+### Test it works
+
+Open `http://localhost:5000/api/health` — should return `{"status":"Server is running "}`
+
+---
+
+## Test Credentials
+
+After seeding, log in with any of these:
+
+```
+user1@example.com / password123
+user2@example.com / password123
+...up to user10@example.com
+```
+
+---
+
+## Dependencies
+
+```json
+"dependencies": {
+  "express": "REST API framework",
+  "cors": "Cross-origin request handling",
+  "dotenv": "Environment variables",
+  "bcrypt": "Password hashing",
+  "jsonwebtoken": "JWT authentication",
+  "multer": "File upload handling",
+  "@prisma/client": "Database client",
+  "@prisma/adapter-pg": "Prisma v7 PostgreSQL adapter",
+  "pg": "PostgreSQL driver"
+},
+"devDependencies": {
+  "prisma": "Migration and schema tooling",
+  "nodemon": "Auto-restart on file changes"
+}
+```

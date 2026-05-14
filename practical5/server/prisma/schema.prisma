@@ -1,0 +1,89 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  email     String   @unique
+  password  String
+  name      String?
+  bio       String?
+  avatar    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  videos       Video[]
+  comments     Comment[]
+  videoLikes   VideoLike[]
+  commentLikes CommentLike[]
+  followers    Follow[]      @relation("following")
+  following    Follow[]      @relation("follower")
+}
+
+model Video {
+  id                   Int      @id @default(autoincrement())
+  title                String
+  description          String?
+  videoUrl             String
+  thumbnail            String?
+  videoStoragePath     String?
+  thumbnailStoragePath String?
+  userId               Int
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  user     User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comments Comment[]
+  likes    VideoLike[]
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  text      String
+  userId    Int
+  videoId   Int
+  createdAt DateTime @default(now())
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  video        Video         @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  commentLikes CommentLike[]
+}
+
+model VideoLike {
+  id      Int @id @default(autoincrement())
+  userId  Int
+  videoId Int
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  video Video @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, videoId])
+}
+
+model CommentLike {
+  id        Int @id @default(autoincrement())
+  userId    Int
+  commentId Int
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, commentId])
+}
+
+model Follow {
+  id          Int      @id @default(autoincrement())
+  followerId  Int
+  followingId Int
+  createdAt   DateTime @default(now())
+
+  follower  User @relation("follower",  fields: [followerId],  references: [id], onDelete: Cascade)
+  following User @relation("following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+}
