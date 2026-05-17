@@ -1,0 +1,325 @@
+# Token-Based Authentication in Node.js using JWT
+
+> **Lab Project** — Web Development / Backend Systems  
+> **Tools:** Node.js · Express · JWT · bcryptjs · Thunder Client
+
+---
+
+##  Table of Contents
+
+- [About](#about)
+- [Project Structure](#project-structure)
+- [Getting Started](#getting-started)
+- [API Endpoints](#api-endpoints)
+- [Testing with Thunder Client](#testing-with-thunder-client)
+- [How It Works](#how-it-works)
+- [Dependencies](#dependencies)
+
+---
+
+## About
+
+This project implements a **stateless token-based authentication system** using JSON Web Tokens (JWT) in a Node.js/Express backend. It covers:
+
+- User **registration** with bcrypt password hashing
+- User **login** that returns a signed JWT
+- A **protected route** accessible only with a valid token
+- A public **user listing** endpoint (homework extension)
+
+---
+
+## Project Structure
+
+```
+node-token-auth/
+├── server.js                 # Entry point — registers routes and starts server
+├── .env                      # Secret key and port (never commit this!)
+├── routes/
+│   ├── auth.js               # POST /auth/register, POST /auth/login, GET /auth/users
+│   └── protected.js          # GET /profile (protected route)
+└── middleware/
+    └── verifyToken.js        # JWT verification middleware
+```
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- [Node.js](https://nodejs.org) installed (v14 or higher)
+- VS Code with [Thunder Client](https://marketplace.visualstudio.com/items?itemName=rangav.vscode-thunder-client) extension
+
+### Installation
+
+```bash
+# 1. Clone or create the project folder
+mkdir node-token-auth
+cd node-token-auth
+
+# 2. Initialise Node project
+npm init -y
+
+# 3. Install dependencies
+npm install express jsonwebtoken bcryptjs dotenv
+
+# 4. Create folders
+mkdir routes middleware
+```
+
+### Environment Setup
+
+Create a `.env` file in the root directory:
+
+```env
+JWT_SECRET=supersecretkey123
+PORT=3000
+```
+
+> ⚠️ **Never commit `.env` to GitHub.** Add it to `.gitignore`.
+
+### Run the Server
+
+```bash
+node server.js
+```
+
+```
+Server running on http://localhost:3000
+
+Available endpoints:
+  POST /auth/register  - Create account
+  POST /auth/login     - Login and get token
+  GET  /profile        - Protected route (needs token)
+```
+
+---
+
+## API Endpoints
+
+| Method | Endpoint | Auth Required | Description |
+|--------|----------|:-------------:|-------------|
+| `POST` | `/auth/register` | ❌ | Register a new user |
+| `POST` | `/auth/login` | ❌ | Login and receive JWT |
+| `GET` | `/profile` | ✅ Bearer Token | Access protected user profile |
+| `GET` | `/auth/users` | ❌ | List all users (id, name, email only) |
+
+### Request & Response Examples
+
+#### POST `/auth/register`
+```json
+// Request Body
+{
+  "name": "Alice",
+  "email": "alice@test.com",
+  "password": "123456"
+}
+
+// Response 201
+{
+  "message": "User registered successfully!"
+}
+```
+
+#### POST `/auth/login`
+```json
+// Request Body
+{
+  "email": "alice@test.com",
+  "password": "123456"
+}
+
+// Response 200
+{
+  "message": "Login successful!",
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+#### GET `/profile`
+```
+// Header
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+```json
+// Response 200
+{
+  "message": "Welcome! You accessed a protected route.",
+  "user": {
+    "id": 1,
+    "email": "alice@test.com",
+    "iat": 1715000000,
+    "exp": 1715086400
+  }
+}
+```
+
+#### GET `/auth/users`
+```json
+// Response 200
+[
+  { "id": 1, "name": "Alice", "email": "alice@test.com" },
+  { "id": 2, "name": "Bob", "email": "bob@test.com" }
+]
+```
+
+---
+
+## Testing with Thunder Client
+
+Open Thunder Client in VS Code (⚡ icon in the sidebar) and run the following tests **in order**:
+
+### Test 1 — Register a User
+
+| Field | Value |
+|-------|-------|
+| Method | `POST` |
+| URL | `http://localhost:3000/auth/register` |
+| Body (JSON) | `{"name": "Alice", "email": "student@test.com", "password": "123456"}` |
+
+**Expected:** `201 Created`
+
+
+
+> ![register](<Screenshot 2026-05-17 114440.png>)
+
+---
+
+### Test 2 — Login
+
+| Field | Value |
+|-------|-------|
+| Method | `POST` |
+| URL | `http://localhost:3000/auth/login` |
+| Body (JSON) | `{"email": "student@test.com", "password": "123456"}` |
+
+**Expected:** `200 OK` with a token in the response
+
+>  **Copy the token** — you will need it for Test 3.
+
+
+> (![Test 2 - Login](<Screenshot 2026-05-17 112419.png>))
+
+
+---
+
+### Test 3 — Access Protected Route (Valid Token)
+
+| Field | Value |
+|-------|-------|
+| Method | `GET` |
+| URL | `http://localhost:3000/profile` |
+| Header | `Authorization: Bearer <your token>` |
+
+**Expected:** `200 OK` with user data
+
+> ![vaild token](<Screenshot 2026-05-17 113608.png>)
+
+
+---
+
+### Test 4 — No Token (Should Fail)
+
+| Field | Value |
+|-------|-------|
+| Method | `GET` |
+| URL | `http://localhost:3000/profile` |
+| Header | *(none)* |
+
+**Expected:** `401 Unauthorized`
+
+>![No token](<Screenshot 2026-05-17 113700.png>)
+
+
+---
+
+### Test 5 — Fake Token (Should Fail)
+
+| Field | Value |
+|-------|-------|
+| Method | `GET` |
+| URL | `http://localhost:3000/profile` |
+| Header | `Authorization: Bearer thisisafaketoken` |
+
+**Expected:** `403 Forbidden`
+
+> ![Fake token](<Screenshot 2026-05-17 113805.png>)
+
+---
+
+### Test 6 — Register Second User
+
+Same as Test 1 but with Bob's details:
+
+```json
+{ "name": "Bob", "email": "bob@test.com", "password": "abc123" }
+```
+
+**Expected:** `201 Created`
+
+> ![Registe Bob](<Screenshot 2026-05-17 114101.png>)
+
+
+---
+
+### Test 7 — Get All Users (Homework)
+
+| Field | Value |
+|-------|-------|
+| Method | `GET` |
+| URL | `http://localhost:3000/auth/users` |
+| Header | *(none needed)* |
+
+**Expected:** `200 OK` — array of users without passwords
+
+> ![get all users](<Screenshot 2026-05-17 114454.png>)
+
+
+---
+
+
+## How It Works
+
+```
+┌─────────┐                          ┌─────────┐
+│ Client  │                          │ Server  │
+└─────────┘                          └─────────┘
+     │  POST /register (name+email+password)   │
+     │ ──────────────────────────────────────► │  Hash password, save user
+     │  { message: "Registered!" }             │
+     │ ◄────────────────────────────────────── │
+     │                                         │
+     │  POST /login (email+password)           │
+     │ ──────────────────────────────────────► │  Verify hash, sign JWT
+     │  { token: "eyJhbG..." }                 │
+     │ ◄────────────────────────────────────── │
+     │                                         │
+     │  GET /profile                           │
+     │  Authorization: Bearer eyJhbG...        │
+     │ ──────────────────────────────────────► │  Verify token signature
+     │  { user: { id, email } }                │  Decode & return data
+     │ ◄────────────────────────────────────── │
+```
+
+### JWT Structure
+
+```
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9   ← Header (algorithm)
+.eyJpZCI6MSwiZW1haWwiOiJ0ZXN0QHRlc3QuY29tIn0  ← Payload (your data)
+.abc123signature                         ← Signature (tamper-proof)
+```
+
+---
+
+## Dependencies
+
+| Package | Version | Purpose |
+|---------|---------|---------|
+| `express` | ^4.x | HTTP server and routing |
+| `jsonwebtoken` | ^9.x | JWT signing and verification |
+| `bcryptjs` | ^2.x | Password hashing |
+| `dotenv` | ^16.x | Environment variable loading |
+
+---
+
+> **Note on Data Persistence:** This project uses an in-memory array to store users. All data is lost when the server restarts. A real application would use a database such as MongoDB or PostgreSQL.
