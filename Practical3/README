@@ -1,0 +1,328 @@
+# Practical 3 — File Upload Implementation (Backend: Express + Multer)
+
+## Overview
+
+This project implements the **server-side file upload system** for the companion React/Next.js frontend. It uses **Express** and **Multer** to receive, validate, store, and serve uploaded files. The backend handles multipart form data, enforces file type and size restrictions, and serves uploaded files statically.
+
+---
+
+## Objectives
+
+1. Set up an Express server to handle HTTP requests from the React frontend
+2. Configure **Multer** middleware for multipart form data processing and disk storage
+3. Create a `/api/upload` endpoint with file type and size validation
+4. Implement proper error handling for Multer-specific and general errors
+5. Configure CORS to allow requests from the React frontend (port 3000)
+6. Serve uploaded files statically at `/uploads/:filename`
+
+---
+
+## Tech Stack
+
+| Package | Purpose |
+|---------|---------|
+| `express` | Web server framework |
+| `cors` | Cross-Origin Resource Sharing (allows frontend on port 3000) |
+| `multer` | Middleware for handling `multipart/form-data` (file uploads) |
+| `morgan` | HTTP request logger |
+| `dotenv` | Environment variable management |
+
+---
+
+## Project Structure
+
+```
+file-upload-server/
+├── server.js          # All server logic — middleware, Multer config, routes, error handling
+├── uploads/           # Directory where uploaded files are saved (auto-created on startup)
+├── .env               # Environment variables
+└── package.json
+```
+
+---
+
+## Setup and Installation
+
+```bash
+# 1. Create the project directory
+mkdir file-upload-server
+cd file-upload-server
+
+# 2. Initialise Node project
+npm init -y
+
+# 3. Install dependencies
+npm install express cors multer morgan dotenv
+
+# 4. Create .env file
+echo "PORT=8000\nFRONTEND_URL=http://localhost:3000" > .env
+
+# 5. Start the server
+node server.js
+```
+
+The `uploads/` directory is created automatically on startup if it does not exist:
+
+```js
+const uploadDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+```
+
+---
+
+## Environment Variables
+
+Create a `.env` file in the project root:
+
+```env
+PORT=8000
+FRONTEND_URL=http://localhost:3000
+```
+
+---
+
+## Implementation Walkthrough
+
+### 1. Server Initialisation (`server.js`)
+
+```js
+const express = require('express');
+const cors = require('cors');
+const morgan = require('morgan');
+const path = require('path');
+const fs = require('fs');
+require('dotenv').config();
+
+const app = express();
+const PORT = process.env.PORT || 8000;
+```
+
+---
+
+### 2. CORS Configuration
+
+The frontend (port 3000) and backend (port 8000) run on different origins. Without CORS headers, the browser blocks cross-origin requests.
+
+```js
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  methods: ['GET', 'POST'],
+  allowedHeaders: ['Content-Type']
+}));
+```
+
+---
+
+### 3. Serving Uploaded Files Statically
+
+Uploaded files are accessible at `http://localhost:8000/uploads/<filename>`:
+
+```js
+app.use('/uploads', express.static(uploadDir));
+```
+
+---
+
+### 4. Multer Configuration
+
+Multer is configured with three options: **storage**, **file filter**, and **size limit**.
+
+#### Storage (Disk Storage)
+
+```js
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, uploadDir);            // save to ./uploads/
+  },
+  filename: function (req, file, cb) {
+    const timestamp = Date.now();
+    const originalName = file.originalname;
+    cb(null, `${originalName}`);    // use original filename (with timestamp prefix in production)
+  }
+});
+```
+
+#### File Filter (Type Validation)
+
+```js
+const fileFilter = (req, file, cb) => {
+  const allowedMimeTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+
+  if (allowedMimeTypes.includes(file.mimetype)) {
+    cb(null, true);   // accept file
+  } else {
+    cb(new Error('Invalid file type. Only JPEG, PNG and PDF files are allowed.'), false);
+  }
+};
+```
+
+#### Multer Instance
+
+```js
+const upload = multer({
+  storage: storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024   // 5MB in bytes
+  },
+  fileFilter: fileFilter
+});
+```
+
+---
+
+### 5. Upload Endpoint
+
+```js
+app.post('/api/upload', upload.single('file'), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    console.log('File received:', req.file.originalname);
+    console.log('File type:', req.file.mimetype);
+
+    return res.status(200).json({
+      message: 'File uploaded successfully',
+      filename: req.file.filename,
+      originalName: req.file.originalname,
+      mimetype: req.file.mimetype,
+      size: req.file.size,
+      url: `/uploads/${req.file.filename}`
+    });
+  } catch (error) {
+    console.error('Upload error:', error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+```
+
+**Response (200 OK):**
+```json
+{
+  "message": "File uploaded successfully",
+  "filename": "photo.jpg",
+  "originalName": "photo.jpg",
+  "mimetype": "image/jpeg",
+  "size": 204800,
+  "url": "/uploads/photo.jpg"
+}
+```
+
+---
+
+### 6. Error Handling Middleware
+
+Multer errors (wrong type, file too large) and general server errors are caught by a dedicated error middleware registered **after all routes**:
+
+```js
+app.use((err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    // Multer-specific error
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(413).json({ error: 'File too large. Maximum size is 5MB.' });
+    }
+    return res.status(400).json({ error: err.message });
+  }
+
+  // General error
+  console.error(err);
+  res.status(500).json({ error: 'Server error' });
+});
+```
+
+---
+
+## API Endpoint Reference
+
+### `POST /api/upload`
+
+Accepts a single file under the field name `file`.
+
+**Request:**
+- Method: `POST`
+- Content-Type: `multipart/form-data`
+- Body: form field `file` (binary) + optional field `name` (text)
+
+**Accepted file types:** `image/jpeg`, `image/png`, `application/pdf`
+
+**Max file size:** 5MB
+
+**Responses:**
+
+| Status | Condition | Body |
+|--------|-----------|------|
+| 200 | Upload successful | `{ message, filename, originalName, mimetype, size, url }` |
+| 400 | No file sent | `{ error: "No file uploaded" }` |
+| 400 | Invalid file type | `{ error: "Invalid file type..." }` |
+| 413 | File exceeds 5MB | `{ error: "File too large. Maximum size is 5MB." }` |
+| 500 | Server error | `{ error: "Server error" }` |
+
+---
+
+### `GET /uploads/:filename`
+
+Serves a previously uploaded file.
+
+```
+GET http://localhost:8000/uploads/photo.jpg
+```
+
+---
+
+## Key Concepts Demonstrated
+
+### 1. Multipart Form Data
+`multipart/form-data` allows binary file data and text fields to coexist in a single HTTP request. Multer parses this format, extracts files, and saves them to disk — freeing the route handler from dealing with raw binary streams.
+
+### 2. File Validation
+Validation happens at two levels:
+- **MIME type** — checked in `fileFilter` against the allowed list
+- **File size** — enforced by Multer's `limits.fileSize` option
+
+### 3. Error Handling
+Multer errors are distinct from general Express errors and must be handled with `instanceof multer.MulterError`. The `LIMIT_FILE_SIZE` error code is used to return a specific 413 (Payload Too Large) response.
+
+### 4. CORS
+Cross-Origin Resource Sharing headers allow the frontend (port 3000) to POST to the backend (port 8000). The `origin` is read from the `.env` file so it can be changed for different environments without code changes.
+
+### 5. Static File Serving
+Uploaded files are served back using `express.static()`, making them accessible via a predictable URL (`/uploads/<filename>`) that the frontend can use to display or link to the uploaded file.
+
+---
+
+## Running the Server
+
+```bash
+# Start the server
+node server.js
+
+# Expected output:
+# Server running on port 8000
+```
+
+The server will be available at `http://localhost:8000`.
+
+---
+
+## Testing
+
+```bash
+# Test the root route
+curl http://localhost:8000/
+# → "File Upload Server is running"
+
+# Test file upload with curl
+curl -X POST http://localhost:8000/api/upload \
+  -F "file=@/path/to/your/image.jpg"
+
+# Test invalid file type
+curl -X POST http://localhost:8000/api/upload \
+  -F "file=@/path/to/document.txt"
+# → 400: "Invalid file type. Only JPEG, PNG and PDF files are allowed."
+
+# Access uploaded file
+curl http://localhost:8000/uploads/image.jpg
+```

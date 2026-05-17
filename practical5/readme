@@ -1,0 +1,165 @@
+# Practical 5: Cloud Storage with Supabase
+
+
+## What I Did
+
+In this practical I migrated the TikTok clone from storing uploaded videos and thumbnails locally on the server to storing them in Supabase Storage — a cloud-based file storage service. Previously every uploaded file was saved to an `uploads/` folder on the Express server, which has serious limitations in a real application. After this practical, all media files are stored in Supabase Storage buckets, delivered through a global CDN, and the server's disk is no longer involved in file storage at all.
+
+---
+
+## Tech Stack Added
+
+| Tool | Purpose |
+|---|---|
+| Supabase Storage | Cloud bucket storage for videos and thumbnails |
+| `@supabase/supabase-js` | JavaScript SDK for interacting with Supabase |
+| Multer (memory storage) | Changed from disk storage to memory buffer for cloud upload |
+
+---
+
+## What Changed
+
+### Backend
+- Created `src/lib/supabase.js` — Supabase client using the service role key
+- Created `src/services/storageService.js` — `uploadFile` and `deleteFile` functions
+- Updated `videoController.js` — uploads now go to Supabase, URLs saved to DB
+- Updated `videoRoutes.js` — Multer switched from disk to memory storage
+- Updated `prisma/schema.prisma` — added `videoStoragePath` and `thumbnailStoragePath` fields
+- Ran migration: `npx prisma migrate dev --name add_storage_paths`
+
+### Frontend
+- Installed `@supabase/supabase-js`
+- Created `src/lib/supabase.js` — frontend Supabase client
+- Updated `src/app/upload/page.jsx` — added upload progress indicator
+
+---
+
+## Project Structure (new files)
+
+```
+server/
+└── src/
+    ├── lib/
+    │   └── supabase.js          ← NEW: Supabase client (service role)
+    └── services/
+        └── storageService.js    ← NEW: uploadFile and deleteFile
+
+client/
+└── src/
+    └── lib/
+        └── supabase.js          ← NEW: Supabase client (anon key)
+```
+
+---
+
+## Setup Instructions
+
+### 1. Create Supabase Project
+
+1. Go to [supabase.com](https://supabase.com) and create a new project
+2. Go to **Storage** → create two public buckets: `videos` and `thumbnails`
+3. Add policies to each bucket:
+   - Authenticated users: all operations
+   - Public (anon): SELECT only
+4. Go to **Settings → API** and copy your keys
+
+### 2. Update `server/.env`
+
+```env
+SUPABASE_URL=https://your-project-id.supabase.co
+SUPABASE_SERVICE_KEY=your-service-role-key
+SUPABASE_PUBLIC_KEY=your-anon-key
+SUPABASE_STORAGE_URL=https://your-project-id.supabase.co/storage/v1
+```
+
+### 3. Install dependencies
+
+```bash
+cd server
+npm install @supabase/supabase-js
+
+cd client
+npm install @supabase/supabase-js
+```
+
+### 4. Update `client/.env.local`
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLIC_KEY=your-anon-key
+```
+
+### 5. Run migration
+
+```bash
+cd server
+npx prisma migrate dev --name add_storage_paths
+npx prisma generate
+```
+
+### 6. Start servers
+
+```bash
+# Terminal 1
+cd server && npm run dev
+
+# Terminal 2
+cd client && npm run dev
+```
+
+---
+
+## How It Works
+
+```
+User selects video
+       ↓
+Frontend sends FormData to Express backend
+       ↓
+Backend receives file in memory (Multer memoryStorage)
+       ↓
+Backend uploads buffer to Supabase 'videos' bucket
+       ↓
+Supabase returns public CDN URL
+       ↓
+Backend saves URL + storage path to PostgreSQL
+       ↓
+Frontend plays video directly from Supabase CDN
+```
+
+---
+
+## Supabase Bucket Policies
+
+| Bucket | Policy | Role | Operations |
+|---|---|---|---|
+| videos | Authenticated upload | authenticated | ALL |
+| videos | Public view | anon, authenticated | SELECT |
+| thumbnails | Authenticated upload | authenticated | ALL |
+| thumbnails | Public view | anon, authenticated | SELECT |
+
+---
+
+## Environment Variables
+
+### Server `.env`
+| Variable | Description |
+|---|---|
+| `SUPABASE_URL` | Your Supabase project URL |
+| `SUPABASE_SERVICE_KEY` | Service role key (admin access, keep secret) |
+| `SUPABASE_PUBLIC_KEY` | Anon public key |
+| `SUPABASE_STORAGE_URL` | Project URL + `/storage/v1` |
+
+### Client `.env.local`
+| Variable | Description |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | Your Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_PUBLIC_KEY` | Anon public key (safe for frontend) |
+
+---
+
+## Known Limitations
+
+- No file size progress bar for large uploads
+- Migration script for existing local videos not implemented
+- Profile picture upload still not implemented
